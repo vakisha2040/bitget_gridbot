@@ -3,7 +3,7 @@ const axios = require('axios');
 // ---- CONFIGURATION ----
 // Change these values as needed for your contract and time frame
 const SYMBOL = 'BTCUSDT_UMCBL'; // Bitget USDT-Margined perpetual futures symbol
-const GRANULARITY = '1min';     // Candle interval: '1min', '5min', '15min', '30min', '1h', etc.
+const GRANULARITY = 180;     // Candle interval: '1min', '5min', '15min', '30min', '1h', etc.
 const LIMIT = 100;              // Number of candles to fetch (1-1000)
 
 // ---- Fetch candles from Bitget Futures API ----
