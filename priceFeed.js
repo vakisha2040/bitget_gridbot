@@ -5,33 +5,33 @@ let latestPrice = 0;
 let listeners = [];
 let pollingInterval = null;
 
-// Bitget UTA v3 ticker endpoint
-// Docs: https://www.bitget.com/api-doc/contract/market/Get-Ticker
+// Bitget API v3 endpoint
 async function pollPrice() {
   try {
     const endpoint = `https://api.bitget.com/api/v2/market/ticker`;
+    const params = {
+      symbol: config.symbol // e.g. "BTCUSDT"
+    };
 
-    const res = await axios.get(endpoint, {
-      params: {
-        symbol: config.polsymbol // e.g. "BTCUSDT_UMCBL"
-      }
-    });
+    const res = await axios.get(endpoint, { params });
 
     if (res.data.code !== "00000") {
-      throw new Error(res.data.msg || "Bitget API error");
+      throw new Error(res.data.msg || "Unknown Bitget API error");
     }
 
-    const ticker = res.data.data;
-    if (!ticker || !ticker.lastPr) {
-      console.warn("[Bitget] No valid price found:", res.data);
-      return;
+    const ticker = res.data?.data;
+    if (!ticker) {
+      throw new Error("No ticker data");
     }
 
-    const price = parseFloat(ticker.lastPr);
+    const price = ticker.lastPr || ticker.close;
     if (price) {
-      latestPrice = price;
+      latestPrice = parseFloat(price);
       listeners.forEach(fn => fn(latestPrice));
+    } else {
+      console.warn("[Bitget] No valid price found in response:", ticker);
     }
+
   } catch (err) {
     console.error("[PriceFeed] Bitget polling error:", err.message);
   }
