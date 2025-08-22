@@ -10,7 +10,7 @@ async function pollPrice() {
   try {
     const endpoint = `https://api.bitget.com/api/mix/v1/market/ticker`;
     const params = {
-      symbol: config.symbol,
+      symbol: config.polsymbol,
       productType: 'umcbl'
     };
 
