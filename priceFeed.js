@@ -10,7 +10,7 @@ async function pollPrice() {
   try {
     const endpoint = "https://api.bitget.com/api/v2/mix/market/ticker";
     const params = {
-      symbol: config.polsymbol,       // e.g. "BTCUSDT"
+      symbol: "BTCUSDT",       // e.g. "BTCUSDT"
       productType: "USDT-FUTURES"     // USDT-M Futures
     };
 
