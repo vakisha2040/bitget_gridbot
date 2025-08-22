@@ -1,6 +1,14 @@
 const priceFeed = require('./priceFeed');
-priceFeed.startPolling(2000);
 
-priceFeed.onPrice(p => {
-  console.log("Current Price:", p);
+const { startPolling, onPrice, waitForFirstPrice } = require('./priceFeed');
+
+startPolling(2000);
+
+onPrice(price => {
+  console.log("✅ Live price:", price);
 });
+
+(async () => {
+  const firstPrice = await waitForFirstPrice();
+  console.log("🎯 First price fetched:", firstPrice);
+})();
