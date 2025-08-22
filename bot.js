@@ -17,7 +17,7 @@ let hedgeToMain = false;
 let extremeBoundary = null; // Tracks most aggressive boundary level
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_COOLDOWN = 5000; // 3 seconds minimum between updates
-const bybit = require('./bybitClient');
+const bybit = require('./bitgetClient');
 const config = require('./config.json');
 const state = require('./state');
 
