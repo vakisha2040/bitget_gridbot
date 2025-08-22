@@ -1,11 +1,10 @@
 const axios = require('axios');
 
 // ---- CONFIGURATION ----
-// Set these to your desired contract and timeframe
-const SYMBOL = 'BTCUSDT_UMCBL';       // Bitget USDT-Margined perpetual futures
-const GRANULARITY = '3min';           // Candle interval: '1min', '5min', etc.
-const LIMIT = 100;                    // Number of candles to fetch (max 1000)
-const PRODUCT_TYPE = 'umcbl';         // USDT-M futures (see Bitget docs)
+// Change these values as needed for your contract and time frame
+const SYMBOL = 'BTCUSDT_UMCBL'; // Bitget USDT-Margined perpetual futures symbol
+const GRANULARITY = '1min';     // Candle interval: '1min', '5min', '15min', '30min', '1h', etc.
+const LIMIT = 100;              // Number of candles to fetch (1-1000)
 
 // ---- Fetch candles from Bitget Futures API ----
 async function fetchCandles(symbol = SYMBOL) {
@@ -15,8 +14,8 @@ async function fetchCandles(symbol = SYMBOL) {
       params: {
         symbol,
         granularity: GRANULARITY,
-        limit: LIMIT,
-        productType: PRODUCT_TYPE, // Optional for candles, but harmless
+        limit: LIMIT
+        // Do NOT include productType or other unnecessary params
       }
     });
     if (!res.data.data || !Array.isArray(res.data.data) || res.data.data.length === 0) {
