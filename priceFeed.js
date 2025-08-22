@@ -1,42 +1,44 @@
-const axios = require('axios');
-const config = require('./config.json');
+const axios = require("axios");
+const config = require("./config.json");
 
 let latestPrice = 0;
 let listeners = [];
 let pollingInterval = null;
 
-// Bitget API: https://www.bitget.com/api-doc/contract/market/Get-Ticker
+/**
+ * Bitget UTA v3 API endpoint:
+ * https://api.bitget.com/api/v2/mix/market/ticker?symbol=BTCUSDT_UMCBL
+ */
 async function pollPrice() {
   try {
-    const endpoint = `https://api.bitget.com/api/mix/v1/market/ticker`;
+    const endpoint = "https://api.bitget.com/api/v2/mix/market/ticker";
     const params = {
-      symbol: config.polsymbol,
-      productType: 'umcbl'
+      symbol: config.polsymbol || "BTCUSDT_UMCBL", // e.g., BTCUSDT_UMCBL
     };
 
     const res = await axios.get(endpoint, { params });
-    const ticker = res.data?.data;
 
-    if (res.data.code !== '00000') {
-      throw new Error(res.data.msg || 'Unknown Bitget API error');
+    if (res.data.code !== "00000") {
+      throw new Error(res.data.msg || "Unknown Bitget API error");
     }
 
-    const price = ticker.bestBid || ticker.last;
+    const ticker = res.data.data;
+
+    const price = ticker.lastPr || ticker.bestBidPr;
     if (price) {
       latestPrice = parseFloat(price);
-      listeners.forEach(fn => fn(latestPrice));
+      listeners.forEach((fn) => fn(latestPrice));
     } else {
-      console.warn('[Bitget] No valid price found in response:', ticker);
+      console.warn("[Bitget] No valid price found in response:", ticker);
     }
-
   } catch (err) {
-    console.error('[PriceFeed] Bitget polling error:', err.message);
+    console.error("[PriceFeed] Bitget polling error:", err.message);
   }
 }
 
 function startPolling(intervalMs = 1000) {
   if (pollingInterval) clearInterval(pollingInterval);
-  pollPrice(); // immediate
+  pollPrice(); // run immediately
   pollingInterval = setInterval(pollPrice, intervalMs);
 }
 
@@ -55,16 +57,17 @@ function getCurrentPrice() {
 }
 
 function waitForFirstPrice() {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (latestPrice) return resolve(latestPrice);
     onPrice(resolve);
   });
 }
 
+// ✅ Export functions
 module.exports = {
   onPrice,
   getCurrentPrice,
   waitForFirstPrice,
   startPolling,
-  stopPolling
+  stopPolling,
 };
