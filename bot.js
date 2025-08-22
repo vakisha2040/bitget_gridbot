@@ -6,12 +6,21 @@ const {
 } = require('./helper');
 
 //require('./telegram'); // ✅ This will start the Telegram bot
+/*
 const {
   getCurrentPrice,
   waitForFirstPrice,
   startPolling,
   stopPolling
 } = require('./priceFeed');
+*/
+
+const priceFeed = require('./priceFeed');
+
+const { startPolling, onPrice, waitForFirstPrice } = require('./priceFeed');
+
+
+
 
 let hedgeToMain = false;
 let extremeBoundary = null; // Tracks most aggressive boundary level
@@ -133,8 +142,18 @@ const mainTrade = state.getMainTrade();
 
 async function startBot() {
   fetchPrecision(config);
-  startPolling(1000);
-  await waitForFirstPrice();
+  //startPolling(1000);
+  startPolling(2000);
+
+onPrice(price => {
+  console.log("✅ Live price:", price);
+});
+
+//(async () => {
+  const firstPrice = await waitForFirstPrice();
+  console.log("🎯 First price fetched:", firstPrice);
+//})();
+//  await waitForFirstPrice();
   state.startBot();
   sendMessage('🤖 Bot started');
   
