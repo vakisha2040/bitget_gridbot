@@ -1,28 +1,19 @@
-const axios = require('axios');
+// tradingBotBitget.js
+const axios = require("axios");
 
-// ---- CONFIGURATION ----
-// Change these values as needed for your contract and time frame
-const SYMBOL = 'BTCUSDT_UMCBL'; // Bitget USDT-Margined perpetual futures symbol
-const GRANULARITY = 180;     // Candle interval: '1min', '5min', '15min', '30min', '1h', etc.
-const LIMIT = 100;              // Number of candles to fetch (1-1000)
+// ---- Config ----
+const SYMBOL = "BTCUSDT_UMCBL"; // BTC/USDT USDT-M Futures
+const GRANULARITY = 60; // 1 minute candles (in seconds)
+const LIMIT = 50; // fetch 50 candles for safety
 
-// ---- Fetch candles from Bitget Futures API ----
-async function fetchCandles(symbol = SYMBOL) {
-  const url = 'https://api.bitget.com/api/mix/v1/market/candles';
+// ---- Fetch candles ----
+async function fetchCandles() {
   try {
-    const res = await axios.get(url, {
-      params: {
-        symbol,
-        granularity: GRANULARITY,
-        limit: LIMIT
-        // Do NOT include productType or other unnecessary params
-      }
-    });
-    if (!res.data.data || !Array.isArray(res.data.data) || res.data.data.length === 0) {
-      throw new Error("Empty data: " + JSON.stringify(res.data));
-    }
-    // Parse and reverse to go from oldest -> newest
-    return res.data.data.reverse().map(c => ({
+    const url = `https://api.bitget.com/api/mix/v1/market/candles?symbol=${SYMBOL}&granularity=${GRANULARITY}&limit=${LIMIT}`;
+    const { data } = await axios.get(url);
+
+    // Bitget returns: [timestamp, open, high, low, close, volume, quoteVolume]
+    const candles = data.map(c => ({
       openTime: Number(c[0]),
       open: parseFloat(c[1]),
       high: parseFloat(c[2]),
@@ -30,21 +21,18 @@ async function fetchCandles(symbol = SYMBOL) {
       close: parseFloat(c[4]),
       volume: parseFloat(c[5]),
       time: new Date(Number(c[0])).toLocaleTimeString()
-    }));
+    })).reverse(); // reverse so earliest → latest
+
+    return candles;
   } catch (err) {
-    // Print detailed error for debugging
-    if (err.response) {
-      console.error('❌ fetchCandles error:', err.response.data);
-    } else {
-      console.error('❌ fetchCandles error:', err.message);
-    }
+    console.error("❌ Request failed:", err.message);
     return [];
   }
 }
 
 // ---- Intraday signal logic ----
 function getIntradaySignal(candles) {
-  if (candles.length < 11) return 'WAIT';
+  if (candles.length < 11) return "WAIT";
 
   const recent10 = candles.slice(-11, -1); // Previous 10 candles
   const last = candles[candles.length - 1];
@@ -57,23 +45,23 @@ function getIntradaySignal(candles) {
 
   if (last.close >= high10) {
     console.log(`📈 BUY at ${last.close} on ${last.time}`);
-    return 'BUY';
+    return "BUY";
   }
 
   if (last.close <= low10) {
     console.log(`📉 SELL at ${last.close} on ${last.time}`);
-    return 'SELL';
+    return "SELL";
   }
 
-  return 'WAIT';
+  return "WAIT";
 }
 
 // ---- Analyze and log every interval ----
 async function analyze() {
   const candles = await fetchCandles();
   if (!candles.length) {
-    console.log('No candle data, skipping.');
-    return 'WAIT';
+    console.log("No candle data, skipping.");
+    return "WAIT";
   }
   const signal = getIntradaySignal(candles);
   console.log(`[${new Date().toLocaleString()}] 📊 Signal: ${signal}`);
@@ -85,7 +73,7 @@ setInterval(async () => {
   try {
     await analyze();
   } catch (err) {
-    console.error('❌ Error:', err.message);
+    console.error("❌ Error:", err.message);
   }
 }, 5000);
 
@@ -108,5 +96,5 @@ const { analyze } = require('./tradingBotBitget');
 
 // ---- Notes ----
 // - Change SYMBOL and GRANULARITY for your preferred contract/timeframe.
-// - No API key needed for public data.
-// - For real trading, add authentication and order logic.
+// - No API key needed for public market data.
+// - For live trading, you’ll need authentication & order placement logic.
