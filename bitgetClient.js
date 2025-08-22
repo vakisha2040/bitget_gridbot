@@ -53,6 +53,7 @@ class BitgetClient {
     return json.data;
   }
 
+  /*
   // ---- Set Leverage ----
   async setLeverage(symbol, leverage, marginMode = 'isolated') {
     try {
@@ -106,7 +107,8 @@ class BitgetClient {
       this.logger.error('❌ Cancel orders failed:', e.message);
     }
   }
-
+*/
+  
   // ---- Open Main Trade ----
   async openMainTrade(side, qty) {
     const posSide = side.toUpperCase() === 'BUY' ? 'long' : 'short';
@@ -125,6 +127,7 @@ class BitgetClient {
   async openHedgeTrade(side, qty) {
     return this.openMainTrade(side, qty);
   }
+  
 
   async closeHedgeTrade(side, qty) {
     return this.closeMainTrade(side, qty);
