@@ -1,39 +1,38 @@
 const axios = require('axios');
 const config = require('./config.json');
 
-const SYMBOL = config.symbol.endsWith('_UMCBL') ? config.symbol : config.symbol + '_UMCBL';
-const INTERVAL = '3m';
+// Example: "SBTCSUSDT", "SBTCSUSDT", etc.
+const SYMBOL = config.symbol || "SBTCSUSDT";
+const INTERVAL_SECONDS = 180; // 3 minutes
 const LIMIT = 100;
+const PRODUCT_TYPE = "umcbl"; // USDT-M futures
 
 let currentPosition = null; // 'LONG', 'SHORT', or null
 
-function getBitgetInterval(binanceInterval) {
-  // Bitget uses '1m', '3m', etc.
-  if (/^\d+m$/.test(binanceInterval)) {
-    return binanceInterval;
-  }
-  throw new Error('Unsupported interval format for Bitget');
-}
-
 async function fetchCandles(symbol = SYMBOL) {
-  // Bitget endpoint for USDT Perpetual Kline
-  // https://api.bitget.com/api/v2/market/mark-candles?symbol=BTCUSDT_UMCBL&granularity=3m&limit=100
-  const bitgetInterval = getBitgetInterval(INTERVAL);
-  const url = `https://api.bitget.com/api/v2/market/mark-candles?symbol=${symbol}&granularity=${bitgetInterval}&limit=${LIMIT}`;
-  const res = await axios.get(url);
-  // Bitget returns { code, msg, data: [[timestamp, open, high, low, close, ...], ...] }
-  if (!res.data.data) {
-    throw new Error('Invalid response from Bitget API');
+  const url = 'https://api.bitget.com/api/mix/v1/market/candles';
+  try {
+    const res = await axios.get(url, {
+      params: {
+        symbol: symbol,
+        granularity: INTERVAL_SECONDS,
+        limit: LIMIT,
+        productType: PRODUCT_TYPE
+      }
+    });
+    // Bitget returns: [time, open, high, low, close, volume, quoteVolume]
+    return res.data.data.reverse().map(c => ({
+      openTime: Number(c[0]),
+      open: parseFloat(c[1]),
+      high: parseFloat(c[2]),
+      low: parseFloat(c[3]),
+      close: parseFloat(c[4]),
+      time: new Date(Number(c[0])).toLocaleTimeString()
+    }));
+  } catch (err) {
+    console.error('❌ fetchCandles error:', err.message);
+    return [];
   }
-  // Bitget data order: [timestamp, open, high, low, close, volume, turnover]
-  return res.data.data.map(c => ({
-    openTime: Number(c[0]),
-    open: parseFloat(c[1]),
-    high: parseFloat(c[2]),
-    low: parseFloat(c[3]),
-    close: parseFloat(c[4]),
-    time: new Date(Number(c[0])).toLocaleTimeString()
-  })).reverse(); // Bitget returns newest first, reverse for oldest first
 }
 
 function getIntradaySignal(candles) {
@@ -60,29 +59,33 @@ function getIntradaySignal(candles) {
 
   return 'WAIT';
 }
+
 async function analyze() {
   const candles = await fetchCandles();
+  if (!candles.length) {
+    console.log('No candle data, skipping.');
+    return 'WAIT';
+  }
   const signal = getIntradaySignal(candles);
   console.log(`[${new Date().toLocaleString()}] 📊 Signal: ${signal}`);
-  
   return signal;
 }
 
-// Run every 5 seconds
+// Run every 5 sec (5000 ms)
 setInterval(async () => {
   try {
     await analyze();
   } catch (err) {
     console.error('❌ Error:', err.message);
   }
-}, 5000); // Poll every 5 sec 
+}, 5000);
 
 module.exports = { analyze };
 
 /*
 usage
 
-const { analyze } = require('./technical');
+const { analyze } = require('./tradingBotBitget');
 
 (async () => {
   let signal = await analyze();
