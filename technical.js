@@ -1,21 +1,22 @@
 const axios = require('axios');
-const config = require('./config.json');
 
-// Make sure config.symbol is a valid Bitget perpetual symbol like "BTCUSDT_UMCBL"
-const SYMBOL = config.polsymbol || "BTCUSDT_UMCBL";
-const GRANULARITY = 180; // 3 minutes in seconds (Bitget granularity: 60, 180, 300, etc.)
-const LIMIT = 100;
-const PRODUCT_TYPE = "umcbl"; // USDT-Margined Perpetual
+// ---- CONFIGURATION ----
+// Set these to your desired contract and timeframe
+const SYMBOL = 'BTCUSDT_UMCBL';       // Bitget USDT-Margined perpetual futures
+const GRANULARITY = '3min';           // Candle interval: '1min', '5min', etc.
+const LIMIT = 100;                    // Number of candles to fetch (max 1000)
+const PRODUCT_TYPE = 'umcbl';         // USDT-M futures (see Bitget docs)
 
+// ---- Fetch candles from Bitget Futures API ----
 async function fetchCandles(symbol = SYMBOL) {
   const url = 'https://api.bitget.com/api/mix/v1/market/candles';
   try {
     const res = await axios.get(url, {
       params: {
-        symbol: symbol,
-        productType: PRODUCT_TYPE,
+        symbol,
         granularity: GRANULARITY,
         limit: LIMIT,
+        productType: PRODUCT_TYPE, // Optional for candles, but harmless
       }
     });
     if (!res.data.data || !Array.isArray(res.data.data) || res.data.data.length === 0) {
@@ -29,7 +30,6 @@ async function fetchCandles(symbol = SYMBOL) {
       low: parseFloat(c[3]),
       close: parseFloat(c[4]),
       volume: parseFloat(c[5]),
-      // Optionally include volume and quoteVolume: c[6]
       time: new Date(Number(c[0])).toLocaleTimeString()
     }));
   } catch (err) {
@@ -43,6 +43,7 @@ async function fetchCandles(symbol = SYMBOL) {
   }
 }
 
+// ---- Intraday signal logic ----
 function getIntradaySignal(candles) {
   if (candles.length < 11) return 'WAIT';
 
@@ -68,6 +69,7 @@ function getIntradaySignal(candles) {
   return 'WAIT';
 }
 
+// ---- Analyze and log every interval ----
 async function analyze() {
   const candles = await fetchCandles();
   if (!candles.length) {
@@ -79,7 +81,7 @@ async function analyze() {
   return signal;
 }
 
-// Run every 5 seconds (5000 ms)
+// ---- Run every 5 seconds (5000 ms) ----
 setInterval(async () => {
   try {
     await analyze();
@@ -88,9 +90,15 @@ setInterval(async () => {
   }
 }, 5000);
 
-/*
-usage
+// ---- Export for external usage ----
+module.exports = {
+  analyze,
+  fetchCandles,
+  getIntradaySignal
+};
 
+/*
+USAGE:
 const { analyze } = require('./tradingBotBitget');
 
 (async () => {
@@ -98,3 +106,8 @@ const { analyze } = require('./tradingBotBitget');
   console.log("Signal received:", signal);
 })();
 */
+
+// ---- Notes ----
+// - Change SYMBOL and GRANULARITY for your preferred contract/timeframe.
+// - No API key needed for public data.
+// - For real trading, add authentication and order logic.
