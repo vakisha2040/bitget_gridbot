@@ -77,14 +77,14 @@ async function analyze() {
   return signal;
 }
 
-// Run every 5 minutes (300000 ms)
+// Run every 5 seconds (5000 ms)
 setInterval(async () => {
   try {
     await analyze();
   } catch (err) {
     console.error('❌ Error:', err.message);
   }
-}, 300000);
+}, 5000);
 
 module.exports = { analyze };
 
