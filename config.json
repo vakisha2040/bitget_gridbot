@@ -6,7 +6,7 @@
   "polsymbol":"BTCUSDT_UMCBL",
    "symbol": "BTCUSDT",
   "marginCoin": "USDT",
-  "marginMode": "crossed",
+  "marginMode": "cross",
   "productType": "umcbl",
   "leverage": 100,
   "orderSize": 0.001,
