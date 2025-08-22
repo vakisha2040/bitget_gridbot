@@ -17,7 +17,7 @@ const {
 
 const priceFeed = require('./priceFeed');
 
-const { startPolling, onPrice, waitForFirstPrice } = require('./priceFeed');
+const { getCurrentPrice, startPolling, onPrice, waitForFirstPrice } = require('./priceFeed');
 
 
 
