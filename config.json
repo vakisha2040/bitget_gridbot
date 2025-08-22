@@ -4,7 +4,7 @@
   "pricePrecision": 2,
   "stepSize": 0.1,
   "polsymbol":"BTCUSDT_UMCBL",
-   "symbol": "BTCUSDT_UMCBL",
+   "symbol": "BTCUSDT",
   "marginCoin": "USDT",
   "marginMode": "crossed",
   "productType": "umcbl",
