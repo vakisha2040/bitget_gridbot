@@ -1,26 +1,27 @@
 const axios = require('axios');
 const config = require('./config.json');
 
-// Example: "SBTCSUSDT", "SBTCSUSDT", etc.
-const SYMBOL = config.symbol || "SBTCSUSDT";
-const INTERVAL_SECONDS = 180; // 3 minutes
+// Make sure config.symbol is a valid Bitget futures symbol like "BTCUSDT", "SOLUSDT", etc.
+const SYMBOL = config.symbol || "BTCUSDT";
+const INTERVAL = '3m'; // Must be a string per docs ("1m", "3m", etc.)
 const LIMIT = 100;
-const PRODUCT_TYPE = "umcbl"; // USDT-M futures
-
-let currentPosition = null; // 'LONG', 'SHORT', or null
+const PRODUCT_TYPE = "USDT-FUTURES"; // Use "USDT-FUTURES" for USDT-Margined Perpetual
 
 async function fetchCandles(symbol = SYMBOL) {
-  const url = 'https://api.bitget.com/api/mix/v1/market/candles';
+  const url = 'https://api.bitget.com/api/v2/mix/market/candles';
   try {
     const res = await axios.get(url, {
       params: {
         symbol: symbol,
-        granularity: INTERVAL_SECONDS,
+        productType: PRODUCT_TYPE,
+        granularity: INTERVAL,
         limit: LIMIT,
-        productType: PRODUCT_TYPE
       }
     });
-    // Bitget returns: [time, open, high, low, close, volume, quoteVolume]
+    if (!res.data.data || !Array.isArray(res.data.data) || res.data.data.length === 0) {
+      throw new Error("Empty data: " + JSON.stringify(res.data));
+    }
+    // Parse and reverse to go from oldest -> newest
     return res.data.data.reverse().map(c => ({
       openTime: Number(c[0]),
       open: parseFloat(c[1]),
@@ -30,7 +31,12 @@ async function fetchCandles(symbol = SYMBOL) {
       time: new Date(Number(c[0])).toLocaleTimeString()
     }));
   } catch (err) {
-    console.error('❌ fetchCandles error:', err.message);
+    // Print detailed error for debugging
+    if (err.response) {
+      console.error('❌ fetchCandles error:', err.response.data);
+    } else {
+      console.error('❌ fetchCandles error:', err.message);
+    }
     return [];
   }
 }
@@ -71,14 +77,14 @@ async function analyze() {
   return signal;
 }
 
-// Run every 5 sec (5000 ms)
+// Run every 5 minutes (300000 ms)
 setInterval(async () => {
   try {
     await analyze();
   } catch (err) {
     console.error('❌ Error:', err.message);
   }
-}, 5000);
+}, 300000);
 
 module.exports = { analyze };
 
