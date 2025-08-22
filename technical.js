@@ -3,7 +3,7 @@ const axios = require("axios");
 
 // ---- Config ----
 const SYMBOL = "BTCUSDT_UMCBL"; // BTC/USDT USDT-M Futures
-const GRANULARITY = 60; // 1 minute candles (in seconds)
+const GRANULARITY = 180; // 3 minute candles (in seconds)
 const LIMIT = 50; // fetch 50 candles for safety
 
 // ---- Fetch candles ----
