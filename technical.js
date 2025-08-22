@@ -1,20 +1,20 @@
 const axios = require('axios');
 const config = require('./config.json');
 
-// Make sure config.symbol is a valid Bitget futures symbol like "BTCUSDT", "SOLUSDT", etc.
-const SYMBOL = config.symbol || "BTCUSDT";
-const INTERVAL = '3m'; // Must be a string per docs ("1m", "3m", etc.)
+// Make sure config.symbol is a valid Bitget perpetual symbol like "BTCUSDT_UMCBL"
+const SYMBOL = config.symbol || "BTCUSDT_UMCBL";
+const GRANULARITY = 180; // 3 minutes in seconds (Bitget granularity: 60, 180, 300, etc.)
 const LIMIT = 100;
-const PRODUCT_TYPE = "USDT-FUTURES"; // Use "USDT-FUTURES" for USDT-Margined Perpetual
+const PRODUCT_TYPE = "umcbl"; // USDT-Margined Perpetual
 
 async function fetchCandles(symbol = SYMBOL) {
-  const url = 'https://api.bitget.com/api/v2/mix/market/candles';
+  const url = 'https://api.bitget.com/api/mix/v1/market/candles';
   try {
     const res = await axios.get(url, {
       params: {
         symbol: symbol,
         productType: PRODUCT_TYPE,
-        granularity: INTERVAL,
+        granularity: GRANULARITY,
         limit: LIMIT,
       }
     });
@@ -28,6 +28,8 @@ async function fetchCandles(symbol = SYMBOL) {
       high: parseFloat(c[2]),
       low: parseFloat(c[3]),
       close: parseFloat(c[4]),
+      volume: parseFloat(c[5]),
+      // Optionally include volume and quoteVolume: c[6]
       time: new Date(Number(c[0])).toLocaleTimeString()
     }));
   } catch (err) {
@@ -85,8 +87,6 @@ setInterval(async () => {
     console.error('❌ Error:', err.message);
   }
 }, 5000);
-
-module.exports = { analyze };
 
 /*
 usage
