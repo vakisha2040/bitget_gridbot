@@ -53,18 +53,42 @@ class BitgetClient {
     return json.data;
   }
 
-  /*
-  // ---- Set Leverage ----
-  async setLeverage(symbol, leverage, marginMode = 'isolated') {
+  // ---- Account Setup ----
+  async setMarginMode(mode = 'crossed') {
     try {
-      await this.request('POST', '/api/v3/mix/account/set-leverage', {}, {
+      await this.request('POST', '/api/mix/v1/account/setMarginMode', {}, {
+        marginCoin: this.config.marginCoin,
+        productType: this.config.productType,
+        marginMode: mode
+      });
+      this.logger.info(`✅ Margin mode set to ${mode}`);
+    } catch (e) {
+      this.logger.error('❌ Set margin mode failed:', e.message);
+    }
+  }
+
+  async setPositionMode(mode = 'double_hold') {
+    try {
+      await this.request('POST', '/api/mix/v1/account/setPositionMode', {}, {
+        marginCoin: this.config.marginCoin,
+        productType: this.config.productType,
+        holdMode: mode
+      });
+      this.logger.info(`✅ Position mode set to ${mode}`);
+    } catch (e) {
+      this.logger.error('❌ Set position mode failed:', e.message);
+    }
+  }
+
+  async setLeverage(symbol, leverage, marginMode = 'crossed') {
+    try {
+      await this.request('POST', '/api/mix/v1/account/setLeverage', {}, {
         symbol,
         marginCoin: this.config.marginCoin,
-        marginMode,
         leverage: String(leverage),
+        marginMode
       });
       this.logger.info(`✅ Leverage set: ${leverage}x ${symbol} (${marginMode})`);
-      this.sendMessage?.(`✅ Leverage set: ${leverage}x ${symbol} (${marginMode})`);
       return true;
     } catch (e) {
       this.logger.error('❌ Set leverage failed:', e.message);
@@ -72,21 +96,38 @@ class BitgetClient {
     }
   }
 
-  // ---- Place Order ----
-  async placeOrder(side, qty, tradeSide = 'open', positionSide = 'long') {
+  // ---- Place Order (Hedge Mode) ----
+  async placeOrder(side, qty) {
     try {
-      const order = await this.request('POST', '/api/v3/mix/order/place-order', {}, {
+      let orderSide, holdSide;
+
+      if (side.toUpperCase() === 'BUY') {
+        orderSide = 'open_long';
+        holdSide = 'long';
+      } else if (side.toUpperCase() === 'SELL') {
+        orderSide = 'open_short';
+        holdSide = 'short';
+      } else if (side.toUpperCase() === 'CLOSE_LONG') {
+        orderSide = 'close_long';
+        holdSide = 'long';
+      } else if (side.toUpperCase() === 'CLOSE_SHORT') {
+        orderSide = 'close_short';
+        holdSide = 'short';
+      } else {
+        throw new Error(`Invalid side: ${side}`);
+      }
+
+      const order = await this.request('POST', '/api/mix/v1/order/placeOrder', {}, {
         symbol: this.config.symbol,
         marginCoin: this.config.marginCoin,
-        marginMode: this.config.marginMode || 'isolated',
         size: String(qty),
-        side: side.toLowerCase(),   // buy/sell
-        tradeSide,                  // open/close
+        side: orderSide,
+        holdSide: holdSide,
         orderType: 'market',
-        force: 'gtc',
       });
-      this.logger.info(`🟢 Order placed: ${side} ${qty} (${tradeSide}/${positionSide})`, order);
-      this.sendMessage?.(`🟢 Order placed: ${side} ${qty} (${tradeSide}/${positionSide})`);
+
+      this.logger.info(`🟢 Order placed: ${orderSide} ${qty}`, order);
+      this.sendMessage?.(`🟢 Order placed: ${orderSide} ${qty}`);
       return order;
     } catch (e) {
       this.logger.error('❌ Order failed:', e.message);
@@ -97,7 +138,7 @@ class BitgetClient {
   // ---- Cancel All Orders ----
   async cancelAllOrders() {
     try {
-      await this.request('POST', '/api/v3/mix/order/cancel-all', {}, {
+      await this.request('POST', '/api/mix/v1/order/cancel-all', {}, {
         symbol: this.config.symbol,
         marginCoin: this.config.marginCoin,
       });
@@ -107,32 +148,37 @@ class BitgetClient {
       this.logger.error('❌ Cancel orders failed:', e.message);
     }
   }
-*/
-  
-  // ---- Open Main Trade ----
-  async openMainTrade(side, qty) {
-    const posSide = side.toUpperCase() === 'BUY' ? 'long' : 'short';
-    await this.setLeverage(this.config.symbol, this.config.leverage, this.config.marginMode);
-    return this.placeOrder(side, qty, 'open', posSide);
-  }
-
-  // ---- Close Main Trade ----
-  async closeMainTrade(side, qty) {
-    const posSide = side.toUpperCase() === 'BUY' ? 'long' : 'short';
-    const closeSide = side.toUpperCase() === 'BUY' ? 'SELL' : 'BUY';
-    return this.placeOrder(closeSide, qty, 'close', posSide);
-  }
 
   // ---- Hedge wrappers ----
   async openHedgeTrade(side, qty) {
-    return this.openMainTrade(side, qty);
+    return this.placeOrder(side, qty);
   }
-  
 
   async closeHedgeTrade(side, qty) {
-    return this.closeMainTrade(side, qty);
+    return this.placeOrder(side, qty);
   }
 }
 
 const bitgetClient = new BitgetClient();
 module.exports = bitgetClient;
+
+
+//usage example
+/*
+// setup account
+await bitgetClient.setMarginMode('crossed');
+await bitgetClient.setPositionMode('double_hold');
+await bitgetClient.setLeverage('BTCUSDT', 20, 'crossed');
+
+// open long
+await bitgetClient.openHedgeTrade('BUY', 0.01);
+
+// open short
+await bitgetClient.openHedgeTrade('SELL', 0.01);
+
+// close long
+await bitgetClient.closeHedgeTrade('CLOSE_LONG', 0.01);
+
+// close short
+await bitgetClient.closeHedgeTrade('CLOSE_SHORT', 0.01);
+*/
