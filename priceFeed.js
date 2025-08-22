@@ -1,16 +1,17 @@
-const axios = require('axios');
-const config = require('./config.json');
+const axios = require("axios");
+const config = require("./config.json");
 
 let latestPrice = 0;
 let listeners = [];
 let pollingInterval = null;
 
-// Bitget API v3 endpoint
+// ✅ Correct Bitget UTA v3 Ticker endpoint
 async function pollPrice() {
   try {
-    const endpoint = `https://api.bitget.com/api/v2/market/ticker`;
+    const endpoint = `https://api.bitget.com/api/v2/mix/market/ticker`;
     const params = {
-      symbol: config.symbol // e.g. "BTCUSDT"
+      symbol: config.polsymbol,   // e.g. "BTCUSDT"
+      productType: "umcbl"        // UMCBL = USDT-M Futures
     };
 
     const res = await axios.get(endpoint, { params });
@@ -20,11 +21,8 @@ async function pollPrice() {
     }
 
     const ticker = res.data?.data;
-    if (!ticker) {
-      throw new Error("No ticker data");
-    }
+    const price = ticker.last; // ✅ last traded price
 
-    const price = ticker.lastPr || ticker.close;
     if (price) {
       latestPrice = parseFloat(price);
       listeners.forEach(fn => fn(latestPrice));
