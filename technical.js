@@ -2,7 +2,7 @@ const axios = require('axios');
 const config = require('./config.json');
 
 // Make sure config.symbol is a valid Bitget perpetual symbol like "BTCUSDT_UMCBL"
-const SYMBOL = config.symbol || "BTCUSDT_UMCBL";
+const SYMBOL = config.polsymbol || "BTCUSDT_UMCBL";
 const GRANULARITY = 180; // 3 minutes in seconds (Bitget granularity: 60, 180, 300, etc.)
 const LIMIT = 100;
 const PRODUCT_TYPE = "umcbl"; // USDT-Margined Perpetual
